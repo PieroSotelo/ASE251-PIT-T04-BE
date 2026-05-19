@@ -1,5 +1,6 @@
 package com.T04.Fundo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -17,12 +18,14 @@ public class DetalleVenta {
     @Column(name = "id_detalle")
     private Integer idDetalle;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_venta", nullable = false)
+    @JsonIgnoreProperties({"detalleVentas", "hibernateLazyInitializer", "handler"})
     private Venta venta;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_producto", nullable = false)
+    @JsonIgnoreProperties({"detalleVentas", "hibernateLazyInitializer", "handler"})
     private Producto producto;
 
     @Column(name = "cantidad", nullable = false, precision = 10, scale = 2)

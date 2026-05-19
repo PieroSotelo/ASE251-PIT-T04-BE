@@ -1,5 +1,6 @@
 package com.T04.Fundo.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -17,8 +18,9 @@ public class Exportacion {
     @Column(name = "id_exportacion")
     private Integer idExportacion;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_venta", nullable = false)
+    @JsonIgnoreProperties({"exportaciones", "hibernateLazyInitializer", "handler"})
     private Venta venta;
 
     @Column(name = "pais_destino", length = 100)

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -43,5 +44,19 @@ public class UsuarioController {
         return usuarioService.eliminar(id)
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
+    }
+
+    /**
+     * Login simple: valida usuario + contraseña y devuelve el objeto si coincide.
+     * Body: { "usuario": "admin", "contrasena": "123456" }
+     */
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+        String usuario = body.get("usuario");
+        String contrasena = body.get("contrasena");
+        return usuarioService.buscarPorUsuario(usuario)
+                .filter(u -> u.getContrasena().equals(contrasena))
+                .map(u -> ResponseEntity.ok((Object) u))
+                .orElse(ResponseEntity.status(401).body(Map.of("error", "Credenciales incorrectas")));
     }
 }
