@@ -1,0 +1,39 @@
+# ============================================================
+# Docker Compose - BASE DE DATOS (SQL Server)
+# Uso: docker compose -f docker-compose.db.yml up -d
+# ============================================================
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: fundo_sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Admin1234!"   # Mínimo 8 chars, mayúscula, número y símbolo
+      MSSQL_PID: "Express"              # Express es gratis; cambia a Developer o Standard si tienes licencia
+    ports:
+      - "1433:1433"                     # Expone el puerto para conectarte desde DBeaver / SSMS
+    volumes:
+      - sqlserver_data:/var/opt/mssql   # Persiste los datos entre reinicios
+      - ./init-db:/init-db              # Scripts SQL de inicialización
+    command: >
+      bash -c "
+        /opt/mssql/bin/sqlservr &
+        /bin/bash /init-db/init.sh &
+        wait
+      "
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Admin1234!' -Q 'SELECT 1' -No -C || exit 1"
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  sqlserver_data:
+    name: fundo_sqlserver_data

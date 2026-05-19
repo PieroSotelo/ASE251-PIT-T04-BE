@@ -1,0 +1,68 @@
+# ============================================================
+# Docker Compose - BACKEND + BASE DE DATOS (todo en uno)
+# Uso: docker compose up -d --build
+# ============================================================
+
+services:
+
+  # ── Base de datos SQL Server ──────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: fundo_sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Admin1234!"
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./init-db:/init-db                # Scripts de inicialización
+    # Arranca SQL Server y luego ejecuta el script de creación de BD
+    command: >
+      bash -c "
+        /opt/mssql/bin/sqlservr &
+        /bin/bash /init-db/init.sh &
+        wait
+      "
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Admin1234!' -Q 'SELECT 1' -No -C || exit 1"
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s   # SQL Server tarda ~20-30s en arrancar
+
+  # ── Backend Spring Boot ───────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fundo_backend
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy   # Espera a que SQL Server pase el healthcheck
+    environment:
+      # Sobreescribe los valores de application.properties
+      DB_URL: "jdbc:sqlserver://sqlserver:1433;databaseName=AgroExportDB;encrypt=true;trustServerCertificate=true"
+      DB_USER: "sa"
+      DB_PASSWORD: "Admin1234!"
+      # Opcional: ajusta memoria JVM según el servidor
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/usuarios || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  sqlserver_data:
+    name: fundo_sqlserver_data
